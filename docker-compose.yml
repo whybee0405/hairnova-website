@@ -1,0 +1,31 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hairnova-website:local
+    restart: unless-stopped
+    ports:
+      # Bound to loopback by default, host-port overridable so it never collides
+      # with another app's mapping. Put a reverse proxy in front for real traffic.
+      - "127.0.0.1:${WEB_PORT:-3090}:3000"
+    environment:
+      NODE_ENV: production
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:?Set PAYLOAD_SECRET in .env, see .env.example}
+      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:${WEB_PORT:-3090}}
+      DATA_DIR: /app/data
+      # Optional: TikTok Display API app keys (Admin -> TikTok Connection).
+      TIKTOK_CLIENT_KEY: ${TIKTOK_CLIENT_KEY:-}
+      TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET:-}
+    volumes:
+      - hairnova_data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+volumes:
+  hairnova_data:
+    name: hairnova_website_data

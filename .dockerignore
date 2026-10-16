@@ -1,0 +1,22 @@
+node_modules
+.next
+.artifacts
+.git
+.gitignore
+*.log
+
+# Raw design source assets (psd/ai/clip/mov, raw photo dumps). Not needed to
+# build or run the app; the processed, seeded versions already live in media/.
+references
+
+# Local build cache
+*.tsbuildinfo
+
+# Env files, secrets come in via docker-compose / the platform's secret store
+.env
+.env.local
+.env*.local
+
+# Editor/OS cruft
+.DS_Store
+.vscode

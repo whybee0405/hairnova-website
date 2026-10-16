@@ -1,0 +1,171 @@
+/*
+  Motion layer: scroll reveals, first-screen entrances and hover craft.
+  Rules of the road:
+    - Only transform, opacity and clip-path animate (compositor-friendly).
+    - Reveal states apply only after <ScrollReveal /> sets html.reveal-ready,
+      and anything on screen at load is marked visible first.
+    - Entrances and reveals live inside prefers-reduced-motion: no-preference.
+    - Scroll-linked depth reads --p from <ScrollMotion /> (scroll events), so it runs in every browser.
+*/
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes reveal-up { from { opacity: 0; transform: translate3d(0, 32px, 0); } }
+  @keyframes reveal-fade { from { opacity: 0; } }
+  @keyframes reveal-mask { from { clip-path: inset(0 0 100% 0); } }
+  @keyframes reveal-zoom { from { transform: scale(1.14); } }
+  @keyframes reveal-rule { from { transform: scaleX(0); } }
+  @keyframes reveal-letter { from { transform: translate3d(0, 105%, 0); } }
+  @keyframes line-rise { from { transform: translate3d(0, 108%, 0); } }
+  /* Move-only (no fade from 0): first-screen content counts as painted immediately, which keeps LCP honest. */
+  @keyframes settle { from { transform: translate3d(0, 18px, 0); } }
+  @keyframes portrait-in { from { transform: scale(1.08); } }
+  @keyframes orbit-draw { from { opacity: 0; transform: rotate(-40deg) scale(.92); } }
+  @keyframes word-drift { from { opacity: 0; transform: translate3d(-6%, 0, 0); } }
+
+  /* ---- Scroll reveals ---- */
+  .reveal-ready [data-reveal]:not([data-in]),
+  .reveal-ready [data-reveal="stagger"]:not([data-in]) > * { opacity: 0; }
+  .reveal-ready [data-reveal="mask"]:not([data-in]),
+  .reveal-ready [data-reveal="rule"]:not([data-in]),
+  .reveal-ready [data-reveal="letters"]:not([data-in]),
+  .reveal-ready [data-reveal="stagger"]:not([data-in]) { opacity: 1; }
+  .reveal-ready [data-reveal="mask"]:not([data-in]) { clip-path: inset(0 0 100% 0); }
+  .reveal-ready [data-reveal="rule"]:not([data-in])::before { transform: scaleX(0); }
+  .reveal-ready [data-reveal="letters"]:not([data-in]) > * { transform: translate3d(0, 105%, 0); }
+
+  [data-reveal="up"][data-in="1"] { animation: reveal-up .95s var(--ease-out-expo) var(--reveal-delay, 0s) backwards; }
+  [data-reveal="fade"][data-in="1"] { animation: reveal-fade 1.1s var(--ease-out-quart) var(--reveal-delay, 0s) backwards; }
+  /* Children animate (not transition) so items added later, e.g. after a filter change, also rise in. */
+  [data-reveal="stagger"][data-in="1"] > * { animation: reveal-up .9s var(--ease-out-expo) calc(var(--i, 0) * 90ms + var(--reveal-delay, 0s)) backwards; }
+  [data-reveal="mask"][data-in="1"] { animation: reveal-mask 1.15s cubic-bezier(.77, 0, .18, 1) var(--reveal-delay, 0s) backwards; }
+  [data-reveal="mask"][data-in="1"] img { animation: reveal-zoom 1.6s var(--ease-out-expo) var(--reveal-delay, 0s) backwards; }
+  [data-reveal="rule"][data-in="1"]::before { animation: reveal-rule 1.3s var(--ease-out-expo) var(--reveal-delay, 0s) backwards; }
+  [data-reveal="letters"][data-in="1"] > * { animation: reveal-letter 1s var(--ease-out-expo) calc(var(--i, 0) * 45ms) backwards; }
+
+  .filter-enter { animation: settle .7s var(--ease-out-expo) calc(var(--i, 0) * 60ms) backwards; }
+
+  /* ---- First-screen entrances: short, CSS-only, the hero photo is painted from frame one ---- */
+  .load-settle { animation: settle .9s var(--ease-out-expo) var(--reveal-delay, .15s) backwards; }
+  .load-line > span { animation: line-rise 1s var(--ease-out-expo) calc(.08s + var(--i, 0) * 110ms) backwards; }
+  .campaign-copy .origin-line { animation: settle .8s var(--ease-out-expo) backwards; }
+  .campaign-description { animation: settle .9s var(--ease-out-expo) .42s backwards; }
+  .campaign-actions { animation: settle .9s var(--ease-out-expo) .52s backwards; }
+  .hero-explore { animation: reveal-fade 1s ease .9s backwards; }
+  .campaign-portrait .campaign-model { animation: portrait-in 1.8s var(--ease-out-expo) backwards; }
+  .portrait-orbit { animation: orbit-draw 1.6s var(--ease-out-expo) .2s backwards; }
+  .portrait-word { animation: word-drift 1.4s var(--ease-out-expo) .25s backwards; }
+  .portrait-caption, .portrait-topline { animation: settle .9s var(--ease-out-expo) .6s backwards; }
+  .portrait-proof { animation: settle .9s var(--ease-out-expo) .85s backwards; }
+
+  .partner-copy > * { animation: settle .9s var(--ease-out-expo) backwards; }
+  .partner-copy > :nth-child(2) { animation-delay: .08s; }
+  .partner-copy > :nth-child(3) { animation-delay: .18s; }
+  .partner-copy > :nth-child(4) { animation-delay: .28s; }
+  .partner-copy > :nth-child(5) { animation-delay: .4s; }
+  .partner-hero-photo { animation: portrait-in 1.8s var(--ease-out-expo) backwards; }
+
+  /* ---- Scroll-linked depth: <ScrollMotion /> writes --p (0..1); works in every browser ---- */
+  .campaign-parallax { transform: translate3d(0, calc(var(--p, 0) * 9%), 0); }
+  .portrait-word-wrap { transform: translate3d(0, calc(var(--p, 0) * -40%), 0); }
+  .portrait-orbit-wrap { transform: rotate(calc(var(--p, 0) * -8deg)) scale(calc(1 + var(--p, 0) * .06)); }
+  .wholesale-invitation::before { transform: translate3d(calc(var(--p, 0) * -8%), calc(12% - var(--p, 0) * 18%), 0) rotate(calc(var(--p, 0) * 20deg)); }
+  /* Factory film opens from an inset card to full bleed while the footage settles from a slight zoom. */
+  .factory-film-frame { clip-path: inset(calc((1 - var(--p, 1)) * 7%) calc((1 - var(--p, 1)) * 6%) round calc((1 - var(--p, 1)) * 28px)); }
+  .factory-film-media { transform: scale(calc(1.18 - var(--p, 1) * .18)); }
+}
+
+/* Structural pieces the reveals and parallax rely on (static, always on). */
+[data-reveal="mask"] { overflow: hidden; }
+/* Layered so Tailwind position utilities (e.g. an absolute divider) still win. */
+@layer components { [data-reveal="rule"] { position: relative; } }
+[data-reveal="rule"] { border-top-color: transparent !important; }
+[data-reveal="rule"]::before { content: ''; position: absolute; top: -1px; left: 0; right: 0; height: 1px; background: var(--rule, rgb(40 34 31 / .2)); transform-origin: left; }
+[data-reveal="letters"] { display: flex; overflow: hidden; }
+[data-reveal="letters"] > * { display: inline-block; white-space: pre; }
+.load-line { display: block; overflow: hidden; padding-bottom: .08em; margin-bottom: -.08em; }
+.load-line > span { display: block; }
+.campaign-parallax, .portrait-word-wrap, .portrait-orbit-wrap { position: absolute; inset: 0; }
+.portrait-word-wrap, .portrait-orbit-wrap { pointer-events: none; }
+
+/* ---- Header: underline grows from the left ---- */
+.site-header nav a::before { content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .45s var(--ease-out-expo); }
+.site-header nav a:hover::before { transform: scaleX(1); transform-origin: left; }
+.site-header nav a[aria-current="page"]::before { display: none; }
+
+/* ---- Links and buttons: arrows lean toward their destination, primary CTAs catch a sheen ---- */
+.text-link { transition: gap .45s var(--ease-out-expo), color .25s; }
+.text-link svg, .btn svg { transition: transform .45s var(--ease-out-expo); }
+.text-link:hover svg, .btn:hover svg { transform: translate(3px, -3px); }
+.btn-primary { position: relative; overflow: hidden; isolation: isolate; }
+.btn-primary::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / .5) 50%, transparent 65%); transform: translateX(-120%); transition: transform .9s var(--ease-out-expo); }
+.btn-primary:hover::after { transform: translateX(120%); }
+.btn-primary:hover { box-shadow: 0 14px 30px -14px rgb(0 116 143 / .6); }
+.hero-explore svg { transition: transform .45s var(--ease-out-expo), border-color .25s; }
+.hero-explore:hover svg { transform: translateY(4px); border-color: var(--color-steel-600); }
+.portrait-caption a { transition: transform .5s var(--ease-out-expo), background .3s; }
+.portrait-caption a:hover { transform: rotate(45deg) scale(1.08); background: #fff; }
+
+/* ---- Provenance strip ---- */
+.provenance-inner strong { transition: color .3s; }
+.provenance-inner > div:hover strong { color: var(--color-steel-700); }
+
+/* ---- Product cards: weighted zoom, tinted lift, caption nudge ---- */
+.product-photo { transition: box-shadow .7s var(--ease-out-expo); }
+.product-photo img { transition: transform 1.1s var(--ease-out-expo) !important; }
+.product-card:hover .product-photo img { transform: scale(1.06); }
+.product-card:hover .product-photo { box-shadow: 0 30px 50px -30px rgb(22 47 71 / .45); }
+.product-photo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgb(22 47 71 / .28), transparent 45%); opacity: 0; transition: opacity .6s var(--ease-out-expo); pointer-events: none; }
+.product-card:hover .product-photo::after { opacity: 1; }
+.product-open, .product-status { z-index: 1; }
+.product-open { transition: background .3s, transform .5s var(--ease-out-expo); }
+.product-card:hover .product-open { transform: rotate(45deg) scale(1.1); }
+.product-details h3 { transition: color .3s, transform .5s var(--ease-out-expo); }
+.product-card:hover .product-details h3 { color: var(--color-steel-700); transform: translateX(4px); }
+
+/* ---- Maker bento ---- */
+.maker-tile { transition: transform .6s var(--ease-out-expo), box-shadow .6s var(--ease-out-expo); }
+.maker-tile:hover { transform: translateY(-5px); box-shadow: 0 30px 60px -32px rgb(22 47 71 / .4); }
+.maker-tile-number { transition: transform .6s var(--ease-out-expo), opacity .4s; }
+.maker-tile:hover .maker-tile-number { transform: translateY(-4px); opacity: 1; }
+.maker-tile-primary { position: relative; overflow: hidden; isolation: isolate; }
+.maker-tile-primary::before { content: ''; position: absolute; width: 140%; aspect-ratio: 1; left: 30%; top: -70%; border: 1px solid rgb(255 255 255 / .2); border-radius: 50%; z-index: -1; transition: transform 1.2s var(--ease-out-expo); }
+.maker-tile-primary:hover::before { transform: translate(-6%, 6%) rotate(-8deg); }
+
+/* ---- Craft story: active photo settles from a slight zoom, active title steps forward ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .craft-image-layer img { transform: scale(1.06); transition: transform 1.4s var(--ease-out-expo); }
+  .craft-image-layer.is-active img { transform: scale(1); }
+}
+.craft-scroll-step h3 button > span:last-child { display: inline-block; transition: transform .5s var(--ease-out-expo), color .3s; }
+.craft-scroll-step.is-active h3 button > span:last-child { transform: translateX(8px); }
+.craft-scroll-step:not(.is-active) h3 button:hover > span:last-child { color: var(--color-steel-700); transform: translateX(4px); }
+.craft-step-selectors button { transition: background .25s, border-color .25s, color .25s, transform .3s var(--ease-out-expo); }
+.craft-step-selectors button:active { transform: scale(.97); }
+
+/* ---- Wholesale invitation: a slow ring drifts behind the headline ---- */
+.wholesale-invitation { position: relative; overflow: hidden; isolation: isolate; }
+.wholesale-invitation::before { content: ''; position: absolute; width: 70vw; max-width: 900px; aspect-ratio: 1; right: -18vw; top: -40%; border: 1px solid rgb(255 255 255 / .16); border-radius: 50%; z-index: -1; pointer-events: none; }
+.invitation-top[data-reveal="rule"] { --rule: rgb(255 255 255 / .3); border-bottom-color: transparent; }
+.invitation-top[data-reveal="rule"]::before { top: auto; bottom: -1px; }
+
+/* ---- Wholesale page ---- */
+.partner-reasons article > div { transition: transform .5s var(--ease-out-expo); }
+.partner-reasons article:hover > div { transform: translateX(8px); }
+.partner-reasons article > span { transition: color .3s; }
+.partner-reasons article:hover > span { color: var(--color-cyan-600); }
+.faq-question > span { transition: color .25s, transform .45s var(--ease-out-expo); }
+.faq-question:hover > span { color: var(--color-steel-700); transform: translateX(4px); }
+
+/* ---- Shared frames (About, product detail, contact) ---- */
+
+/* ---- Footer ---- */
+footer ul a { position: relative; }
+footer ul a::after { content: ''; position: absolute; left: 0; right: 0; bottom: -3px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .45s var(--ease-out-expo); }
+footer ul a:hover::after { transform: scaleX(1); transform-origin: left; }
+footer a[aria-label] { transition: color .25s, border-color .25s, transform .45s var(--ease-out-expo) !important; }
+footer a[aria-label]:hover { transform: translateY(-3px); }
+.footer-credit { position: relative; color: rgb(240 231 216 / .75); transition: color .3s; }
+.footer-credit strong { font-weight: 600; color: #f0e7d8; transition: color .3s; }
+.footer-credit::after { content: ''; position: absolute; left: 0; right: 0; bottom: -3px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .45s var(--ease-out-expo); }
+.footer-credit:hover, .footer-credit:hover strong { color: var(--color-cyan-300); }
+.footer-credit:hover::after { transform: scaleX(1); transform-origin: left; }
