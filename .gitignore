@@ -2,10 +2,10 @@ node_modules/
 .next/
 out/
 build/
-media/
-references/
-hairnova.db
-hairnova.db-*
+/media/
+/references/
+/hairnova.db
+/hairnova.db-*
 .env
 .env.local
 *.log

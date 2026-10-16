@@ -12,8 +12,10 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Site: `http://localhost:3090` (or whatever `WEB_PORT` you set)
-Admin: `http://localhost:3090/admin`
+Site on the server: `http://localhost:3090` (or whatever `WEB_PORT` you set)
+Admin on the server: `http://localhost:3090/admin`
+
+The intended external address is `http://102.202.192.19:3090`. The compose port is bound to `127.0.0.1` for server-only access, so this external address will not work until a reverse proxy or an explicitly configured public port exposes the site.
 
 This host already runs several other Dockerized apps (or-optical, saka-dev, dainamo, hypernet, cloudia, pit-in-pos, ...) on ports in the 3020–3111 range. `3090` was free at the time this was set up; before deploying, double check with:
 
@@ -23,7 +25,7 @@ docker ps --format "{{.Names}}: {{.Ports}}"
 
 and change `WEB_PORT` in `.env` if it's since been taken. The compose project is self-contained: its own network (`hairnova-website_default`), its own named volume (`hairnova_website_data`), its own container (`hairnova-website-web-1`), bound to `127.0.0.1` only by default, it won't collide with or be reachable outside this host unless you put a reverse proxy in front of it or change the port binding to `0.0.0.0`.
 
-**First boot** seeds the named volume from a snapshot baked into the image (the real product photography + the pre-seeded database, same content described below). Every boot after that reuses what's already in the volume, a rebuild/redeploy never wipes admin edits or wholesale leads. See `docker-entrypoint.sh` if you want to see exactly how.
+**First boot** seeds the named volume from `deployment-seed/` baked into the image (the product photography + pre-seeded catalogue and pages). The committed database contains no admin user or sessions. Visit `/admin` after first boot to create the first admin account. Every boot after that reuses what's already in the volume; a rebuild/redeploy never wipes admin edits or wholesale leads. See `docker-entrypoint.sh` if you want to see exactly how.
 
 ```bash
 docker compose logs -f web      # tail logs
@@ -46,13 +48,13 @@ First run auto-creates `hairnova.db` (SQLite) and `media/` (uploads) at the proj
 
 ### Reseed from scratch
 
-The database already ships seeded (products, pages, the admin user). To reseed a clean database, delete `hairnova.db` and `media/`, then:
+The Docker deployment snapshot ships seeded with products and pages, with no admin account. To reseed a clean local database, delete `hairnova.db` and `media/`, set `SEED_ADMIN_PASSWORD` in `.env`, then:
 
 ```bash
 npm run seed
 ```
 
-This creates the admin login, uploads the real product photography from `references/`, uploads the five AI-placeholder craft photos, creates six products, and wires up the homepage/wholesale/about hero and craft images. (The Docker image bakes in whatever `hairnova.db` + `media/` exist at `docker compose build` time, reseed and rebuild if you want to change what ships in a fresh deployment.)
+This creates the local admin login, uploads the real product photography from the local `references/` directory, uploads the five AI-placeholder craft photos, creates six products, and wires up the homepage/wholesale/about hero and craft images. The Docker image uses the committed `deployment-seed/` snapshot; updating that snapshot requires a separate, sanitized export.
 
 **Admin login:** `admin@hairnova.local` with the password set in `SEED_ADMIN_PASSWORD` when seeding. Change any previously seeded default password in `/admin` before exposing the site to real traffic.
 

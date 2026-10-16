@@ -31,12 +31,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Seed snapshot: the product photography and pre-seeded SQLite schema already
-# produced by `npm run seed` locally. The entrypoint copies this into the
+# Deployment seed snapshot: the product photography and pre-seeded SQLite schema.
+# The snapshot has no admin account or session. The entrypoint copies this into the
 # runtime volumes on first boot only, never overwriting existing volume data,
 # so a redeploy never clobbers admin edits or new wholesale leads.
-COPY hairnova.db ./seed-data/hairnova.db
-COPY media ./seed-data/media
+COPY deployment-seed/hairnova.db ./seed-data/hairnova.db
+COPY deployment-seed/media ./seed-data/media
 
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh \
